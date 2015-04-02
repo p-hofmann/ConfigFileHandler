@@ -1,5 +1,5 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.1'
+__verson__ = '0.0.2'
 
 import sys
 import logging
@@ -64,19 +64,25 @@ class LoggingWrapper(object):
 			err_handler.setLevel(logging.WARNING)
 		self._logger.addHandler(err_handler)
 
-	def set_log_file(self, filename, mode='w'):
-		assert isinstance(filename, basestring)
+	def set_log_file(self, log_file, mode='w'):
+		assert isinstance(log_file, file) or isinstance(log_file, basestring)
+
 		if self._handler_log_file is not None:
 			self._logger.removeHandler(self._handler_log_file)
 			self._handler_log_file.close()
 			self._handler_log_file = None
+
+		if isinstance(log_file, file):
+			self.add_log_stream(stream=log_file)
+			return
+
 		try:
-			err_handler_file = logging.FileHandler(filename, mode)
+			err_handler_file = logging.FileHandler(log_file, mode)
 			err_handler_file.setFormatter(self.message_formatter)
 			err_handler_file.setLevel(logging.INFO)
 			self._logger.addHandler(err_handler_file)
 		except Exception:
-			sys.stderr.write("[LoggingWrapper] Could not open '{}' for logging\n".format(filename))
+			sys.stderr.write("[LoggingWrapper] Could not open '{}' for logging\n".format(log_file))
 			return
 
 
@@ -94,6 +100,14 @@ def test(log_file_path=None):
 	log2.info("Test2")
 	log1.close()
 	log2.close()
+
+	if log_file_path:
+		log3 = LoggingWrapper("l3", stream=None)
+		with open(log_file_path, 'a') as log_file_handle:
+			log3.set_log_file(log_file_handle)
+			log3.info("Test1")
+		log3.close()
+
 
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
