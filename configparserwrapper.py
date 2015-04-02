@@ -13,35 +13,50 @@ class ConfigParserWrapper(object):
 		'y': True, 't': True, 'n': False, 'f': False}
 
 	def __init__(self, config_file, logfile=None, verbose=True):
-		assert isinstance(config_file, basestring) and os.path.isfile(config_file)
+		assert isinstance(config_file, file) or isinstance(config_file, basestring)
+		assert logfile is None or isinstance(logfile, file) or isinstance(logfile, basestring)
+
 		self._logger = LoggingWrapper("ConfigParserWrapper", verbose=verbose)
 		if logfile:
 			self._logger.set_log_file(logfile)
+
 		self._config = SafeConfigParser()
-		if isinstance(config_file, str):
+
+		if isinstance(config_file, basestring) and not os.path.isfile(config_file):
+			self._logger.error("Config file does not exist: '{}'".format(config_file))
+			raise Exception("File does not exist")
+
+		if isinstance(config_file, basestring):
 			self._config.read(config_file)
 			self._config_file_path = config_file
 		elif isinstance(config_file, file):
 			self._config.readfp(config_file)
 			self._config_file_path = config_file.name
 		else:
-			self._logger.error("[Config] Bad config file type '{}'".format(config_file))
-			return
+			self._logger.error("Invalid config file argument '{}'".format(config_file))
+			raise Exception("Unknown argument")
 
-	def has_missing_section(self, list_sections):
+	def validate_sections(self, list_sections):
+		missing_sections = []
 		for section in list_sections:
 			if not self._config.has_section(section):
-				return section
+				missing_sections.append(section)
+		if len(missing_sections) > 0:
+			return missing_sections
 		return False
 
-	def get_value(self, section, option, is_digit=False, is_boolean=False, verbose=True):
+	def print_invalid_sections(self, list_sections):
+		for section in list_sections:
+			self._logger.warning("Invalid section '{}'".format(section))
+
+	def get_value(self, section, option, is_digit=False, is_boolean=False, obligatory=True):
 		if not self._config.has_section(section):
-			if verbose:
-				self._logger.error("[Config] Bad section '{}'".format(section))
+			if obligatory:
+				self._logger.error("Invalid section '{}'".format(section))
 			return None
 		if not self._config.has_option(section, option):
-			if verbose:
-				self._logger.error("[Config] Bad option in '{}': {}".format(section, option))
+			if obligatory:
+				self._logger.error("Invalid option in '{}': {}".format(section, option))
 			return None
 
 		value = self._config.get(section, option)
@@ -61,14 +76,14 @@ class ConfigParserWrapper(object):
 				return float(value)
 			return int(value)
 		except ValueError:
-			self._logger.error("[Config] Bad value '{}'".format(value))
+			self._logger.error("Invalid digit value '{}'".format(value))
 			return None
 
 	def _is_true(self, value=''):
-		if value is None or not isinstance(value, str):
+		if value is None or not isinstance(value, basestring):
 			return None
 
-		if value.lower() not in Config._boolean_states:
-			self._logger.error("[Config] Bad value '{}'".format(value))
+		if value.lower() not in ConfigParserWrapper._boolean_states:
+			self._logger.error("Invalid bool value '{}'".format(value))
 			return None
-		return Config._boolean_states[value.lower()]
+		return ConfigParserWrapper._boolean_states[value.lower()]
