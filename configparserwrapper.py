@@ -1,15 +1,16 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.1'
+__verson__ = '0.0.2'
 
 import os
+import sys
 from ConfigParser import SafeConfigParser
 from loggingwrapper import LoggingWrapper
 
 
 class ConfigParserWrapper(object):
 	_boolean_states = {
-		'1': True, 'yes': True, 'true': True, 'on': True,
-		'0': False, 'no': False, 'false': False, 'off': False,
+		'yes': True, 'true': True, 'on': True,
+		'no': False, 'false': False, 'off': False,
 		'y': True, 't': True, 'n': False, 'f': False}
 
 	def __init__(self, config_file, logfile=None, verbose=True):
@@ -37,13 +38,13 @@ class ConfigParserWrapper(object):
 			raise Exception("Unknown argument")
 
 	def validate_sections(self, list_sections):
-		missing_sections = []
+		invalid_sections = []
 		for section in list_sections:
 			if not self._config.has_section(section):
-				missing_sections.append(section)
-		if len(missing_sections) > 0:
-			return missing_sections
-		return False
+				invalid_sections.append(section)
+		if len(invalid_sections) > 0:
+			return invalid_sections
+		return None
 
 	def print_invalid_sections(self, list_sections):
 		for section in list_sections:
@@ -61,6 +62,8 @@ class ConfigParserWrapper(object):
 
 		value = self._config.get(section, option)
 		if value == '':
+			if obligatory:
+				self._logger.debug("Invalid value in '{}': {}".format(section, option))
 			return None
 
 		if is_digit:
@@ -87,3 +90,36 @@ class ConfigParserWrapper(object):
 			self._logger.error("Invalid bool value '{}'".format(value))
 			return None
 		return ConfigParserWrapper._boolean_states[value.lower()]
+
+
+def test(cfg_path="test.cfg", log_path="log.txt"):
+	assert cfg_path is None or (isinstance(cfg_path, basestring) and os.path.isfile(cfg_path))
+	print "cfg 1"
+	cfg1 = ConfigParserWrapper(cfg_path, logfile=log_path, verbose=True)
+	testing(cfg1)
+
+	print "\ncfg 2"
+	with open(cfg_path) as file_handle:
+		cfg2 = ConfigParserWrapper(file_handle, logfile=log_path, verbose=True)
+	testing(cfg2)
+
+
+def testing(cfg):
+	assert isinstance(cfg, ConfigParserWrapper)
+	list_of_sections =  ["s0", "s1", "s2"]
+	list_of_options = ["v0", "v1", "v2"]
+	invalid_sections = cfg.validate_sections(list_of_sections)
+	if invalid_sections:
+		cfg.print_invalid_sections(invalid_sections)
+	print cfg.get_value("s2", "v1")
+	for section in list_of_sections[:2]:
+		for options in list_of_options:
+			print "string:", cfg.get_value(section, options)
+			print "digit:", cfg.get_value(section, options, is_digit=True)
+			print "bool:", cfg.get_value(section, options, is_boolean=True)
+
+if __name__ == "__main__":
+	if len(sys.argv) == 2:
+		test(sys.argv[1])
+	else:
+		test()
