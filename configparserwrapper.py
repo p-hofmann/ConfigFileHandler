@@ -1,5 +1,5 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.2'
+__verson__ = '0.0.3'
 
 import os
 import sys
@@ -38,6 +38,7 @@ class ConfigParserWrapper(object):
 			raise Exception("Unknown argument")
 
 	def validate_sections(self, list_sections):
+		assert isinstance(list_sections, list)
 		invalid_sections = []
 		for section in list_sections:
 			if not self._config.has_section(section):
@@ -47,10 +48,17 @@ class ConfigParserWrapper(object):
 		return None
 
 	def print_invalid_sections(self, list_sections):
+		assert isinstance(list_sections, list)
 		for section in list_sections:
 			self._logger.warning("Invalid section '{}'".format(section))
 
-	def get_value(self, section, option, is_digit=False, is_boolean=False, obligatory=True):
+	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, obligatory=True):
+		assert isinstance(section, basestring)
+		assert isinstance(option, basestring)
+		assert isinstance(is_digit, bool)
+		assert isinstance(is_boolean, bool)
+		assert isinstance(obligatory, bool)
+		assert isinstance(is_path, bool)
 		if not self._config.has_section(section):
 			if obligatory:
 				self._logger.error("Invalid section '{}'".format(section))
@@ -71,6 +79,9 @@ class ConfigParserWrapper(object):
 
 		if is_boolean:
 			return self._is_true(value)
+
+		if is_path:
+			return self._get_full_path(value)
 		return value
 
 	def _string_to_digit(self, value):
@@ -82,7 +93,7 @@ class ConfigParserWrapper(object):
 			self._logger.error("Invalid digit value '{}'".format(value))
 			return None
 
-	def _is_true(self, value=''):
+	def _is_true(self, value):
 		if value is None or not isinstance(value, basestring):
 			return None
 
@@ -90,6 +101,14 @@ class ConfigParserWrapper(object):
 			self._logger.error("Invalid bool value '{}'".format(value))
 			return None
 		return ConfigParserWrapper._boolean_states[value.lower()]
+
+	@staticmethod
+	def _get_full_path(value):
+		assert isinstance(value, basestring)
+		value = os.path.expanduser(value)
+		value = os.path.normpath(value)
+		value = os.path.abspath(value)
+		return value
 
 
 def test(cfg_path="test.cfg", log_path="log.txt"):
@@ -117,6 +136,10 @@ def testing(cfg):
 			print "string:", cfg.get_value(section, options)
 			print "digit:", cfg.get_value(section, options, is_digit=True)
 			print "bool:", cfg.get_value(section, options, is_boolean=True)
+			print "path:", cfg.get_value(section, options, is_path=True)
+
+	for options in list_of_options:
+		print "path:", cfg.get_value("p", options, is_path=True)
 
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
