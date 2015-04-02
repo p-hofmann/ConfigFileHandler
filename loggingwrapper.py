@@ -1,11 +1,13 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.3'
+__verson__ = '0.0.4'
 
 import sys
 import logging
 
 
 class LoggingWrapper(object):
+
+	_map_logfile_handler = dict()
 
 	def __init__(self, label="", verbose=True, message_format=None, date_format=None, stream=sys.stderr):
 		assert isinstance(label, basestring)
@@ -15,17 +17,19 @@ class LoggingWrapper(object):
 
 		if message_format is None:
 			message_format = "%(asctime)s %(levelname)s: [%(name)s] %(message)s"
-
 		if date_format is None:
 			date_format = "%Y-%m-%d %H:%M:%S"
-
 		self.message_formatter = logging.Formatter(message_format, date_format)
 
+		self._label = label
 		self._logger = logging.getLogger(label)
+		if label in LoggingWrapper._map_logfile_handler:
+			return
+
+		LoggingWrapper._map_logfile_handler[label] = None
 		self._logger.setLevel(logging.DEBUG)
 		if stream is not None:
 			self.add_log_stream(stream=stream, verbose=verbose)
-		self._handler_log_file = None
 
 	def __exit__(self, type, value, traceback):
 		self.close()
@@ -37,9 +41,12 @@ class LoggingWrapper(object):
 		list_of_handlers = list(self._logger.handlers)
 		for item in list_of_handlers:
 			self._logger.removeHandler(item)
-			if self._handler_log_file is not None:
-				self._handler_log_file.close()
-				self._handler_log_file = None
+		if self._label not in LoggingWrapper._map_logfile_handler:
+			return
+		if LoggingWrapper._map_logfile_handler[self._label] is None:
+			return
+		logfile_handler = LoggingWrapper._map_logfile_handler.pop(self._label)
+		logfile_handler.close()
 
 	def info(self, message):
 		self._logger.info(message)
@@ -74,10 +81,10 @@ class LoggingWrapper(object):
 	def set_log_file(self, log_file, mode='w'):
 		assert isinstance(log_file, file) or isinstance(log_file, basestring)
 
-		if self._handler_log_file is not None:
-			self._logger.removeHandler(self._handler_log_file)
-			self._handler_log_file.close()
-			self._handler_log_file = None
+		if LoggingWrapper._map_logfile_handler[self._label] is not None:
+			self._logger.removeHandler(LoggingWrapper._map_logfile_handler[self._label])
+			LoggingWrapper._map_logfile_handler[self._label].close()
+			LoggingWrapper._map_logfile_handler[self._label] = None
 
 		if isinstance(log_file, file):
 			self.add_log_stream(stream=log_file)
@@ -88,6 +95,7 @@ class LoggingWrapper(object):
 			err_handler_file.setFormatter(self.message_formatter)
 			err_handler_file.setLevel(logging.INFO)
 			self._logger.addHandler(err_handler_file)
+			LoggingWrapper._map_logfile_handler[self._label] = err_handler_file
 		except Exception:
 			sys.stderr.write("[LoggingWrapper] Could not open '{}' for logging\n".format(log_file))
 			return
@@ -105,19 +113,26 @@ def test(log_file_path=None):
 	log1.info("Test2")
 	log2.info("Test1")
 	log2.info("Test2")
+	log2x = LoggingWrapper("l2")
+	log2x.info("Test1 X")
 	log1.close()
 	log2.close()
+	log2x.close()
 
 	if log_file_path:
 		log3 = LoggingWrapper("l3", stream=None)
 		with open(log_file_path, 'a') as log_file_handle:
 			log3.set_log_file(log_file_handle)
 			log3.info("Test1")
-			list_of_methods = [log3.info, log3.debug, log3.warning, log3.error, log3.info, log3.critical, log3.exception]
+			list_of_methods = [log3.info, log3.debug, log3.warning, log3.error, log3.info, log3.critical]
 			count = 2
 			for methods in list_of_methods:
 				methods("Test{}".format(count))
 				count += 1
+			try:
+				raise Exception("Test{}".format(count))
+			except Exception:
+				log3.exception("Test{}".format(count))
 		log3.close()
 
 if __name__ == "__main__":
