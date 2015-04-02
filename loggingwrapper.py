@@ -1,5 +1,5 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.2'
+__verson__ = '0.0.3'
 
 import sys
 import logging
@@ -7,12 +7,19 @@ import logging
 
 class LoggingWrapper(object):
 
-	def __init__(self, label="", verbose=True, message_format=None, stream=sys.stderr):
+	def __init__(self, label="", verbose=True, message_format=None, date_format=None, stream=sys.stderr):
 		assert isinstance(label, basestring)
 		assert isinstance(verbose, bool)
 		assert message_format is None or isinstance(message_format, basestring)
+		assert message_format is None or isinstance(date_format, basestring)
 
-		self.message_formatter = logging.Formatter("%(asctime)s %(levelname)s: [%(name)s] %(message)s", "%Y-%m-%d %H:%M:%S")
+		if message_format is None:
+			message_format = "%(asctime)s %(levelname)s: [%(name)s] %(message)s"
+
+		if date_format is None:
+			date_format = "%Y-%m-%d %H:%M:%S"
+
+		self.message_formatter = logging.Formatter(message_format, date_format)
 
 		self._logger = logging.getLogger(label)
 		self._logger.setLevel(logging.DEBUG)
@@ -50,7 +57,7 @@ class LoggingWrapper(object):
 		self._logger.exception(message)
 
 	def warning(self, message):
-		self._logger.warning(self, message)
+		self._logger.warning(message)
 
 	def set_level(self, level):
 		self._logger.setLevel(level)
@@ -106,8 +113,12 @@ def test(log_file_path=None):
 		with open(log_file_path, 'a') as log_file_handle:
 			log3.set_log_file(log_file_handle)
 			log3.info("Test1")
+			list_of_methods = [log3.info, log3.debug, log3.warning, log3.error, log3.info, log3.critical, log3.exception]
+			count = 2
+			for methods in list_of_methods:
+				methods("Test{}".format(count))
+				count += 1
 		log3.close()
-
 
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
