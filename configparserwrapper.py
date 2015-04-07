@@ -125,7 +125,7 @@ def test(cfg_path="test.cfg", log_path="log.txt"):
 
 def testing(cfg):
 	assert isinstance(cfg, ConfigParserWrapper)
-	list_of_sections =  ["s0", "s1", "s2"]
+	list_of_sections = ["s0", "s1", "s2"]
 	list_of_options = ["v0", "v1", "v2"]
 	invalid_sections = cfg.validate_sections(list_of_sections)
 	if invalid_sections:
