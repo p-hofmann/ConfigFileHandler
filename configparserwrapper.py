@@ -225,8 +225,9 @@ class TestConfigParserMethods(unittest.TestCase):
 				assertion(cfg.get_value(section, options, **kargs), expected_result)
 
 	def test_invalid_input(self):
-		with open(TestConfigParserMethods.test_config) as file_handle_cfg, \
-				open(TestConfigParserMethods.log_file_path, 'a') as file_handle_log:
+		with \
+			open(TestConfigParserMethods.test_config) as file_handle_cfg, \
+			open(TestConfigParserMethods.log_file_path, 'a') as file_handle_log:
 			cfg = ConfigParserWrapper(file_handle_cfg, logfile=file_handle_log, verbose=False)
 
 			self.assertIsInstance(cfg, ConfigParserWrapper)
