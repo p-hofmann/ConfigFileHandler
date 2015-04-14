@@ -1,9 +1,8 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.4'
+__verson__ = '0.0.5'
 
 import os
 import io
-import sys
 import unittest
 from ConfigParser import SafeConfigParser
 from loggingwrapper import LoggingWrapper
@@ -192,13 +191,13 @@ class ConfigParserWrapper(object):
 		return value
 
 
-class TestStringMethods(unittest.TestCase):
+class TestConfigParserMethods(unittest.TestCase):
 	test_config = 'unittest_example.cfg'
 	log_file_path = 'unittest_log.txt'
 
 	def test_valid_input(self):
-		with open(TestStringMethods.log_file_path, 'a') as file_handle_log:
-			cfg = ConfigParserWrapper(TestStringMethods.test_config, logfile=file_handle_log, verbose=True)
+		with open(TestConfigParserMethods.log_file_path, 'a') as file_handle_log:
+			cfg = ConfigParserWrapper(TestConfigParserMethods.test_config, logfile=file_handle_log, verbose=True)
 			# with open(TestStringMethods.test_config) as file_handle:
 			# 	cfg2 = ConfigParserWrapper(file_handle, logfile=TestStringMethods.log_file_path, verbose=True)
 
@@ -226,7 +225,8 @@ class TestStringMethods(unittest.TestCase):
 				assertion(cfg.get_value(section, options, **kargs), expected_result)
 
 	def test_invalid_input(self):
-		with open(TestStringMethods.test_config) as file_handle_cfg, open(TestStringMethods.log_file_path, 'a') as file_handle_log:
+		with open(TestConfigParserMethods.test_config) as file_handle_cfg, \
+				open(TestConfigParserMethods.log_file_path, 'a') as file_handle_log:
 			cfg = ConfigParserWrapper(file_handle_cfg, logfile=file_handle_log, verbose=False)
 
 			self.assertIsInstance(cfg, ConfigParserWrapper)
@@ -266,5 +266,5 @@ class TestStringMethods(unittest.TestCase):
 
 
 if __name__ == '__main__':
-	suite = unittest.TestLoader().loadTestsFromTestCase(TestStringMethods)
+	suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigParserMethods)
 	unittest.TextTestRunner(verbosity=2, buffer=True).run(suite)
