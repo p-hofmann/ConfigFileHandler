@@ -4,6 +4,7 @@ __verson__ = '0.0.4'
 import os
 import io
 import sys
+import unittest
 from ConfigParser import SafeConfigParser
 from loggingwrapper import LoggingWrapper
 
@@ -24,7 +25,7 @@ class ConfigParserWrapper(object):
 			@type config_file: file or FileIO or basestring
 			@param logfile: file handler or file path to a log file
 			@type logfile: file or FileIO or None
-			@param verbose: Not verbose means that only warnings and errors will be past to stream
+			@param verbose: No stdout or stderr messages. Warnings and errors will be only logged to a file, if one is given
 			@type verbose: bool
 
 			@return: None
@@ -32,7 +33,11 @@ class ConfigParserWrapper(object):
 		assert isinstance(config_file, (file, io.FileIO, basestring))
 		assert logfile is None or isinstance(logfile, (file, io.FileIO, basestring))
 
-		self._logger = LoggingWrapper("ConfigParserWrapper", verbose=verbose)
+		if verbose:
+			self._logger = LoggingWrapper("ConfigParserWrapper")
+		else:
+			self._logger = LoggingWrapper("ConfigParserWrapper", stream=None)
+
 		if logfile:
 			self._logger.set_log_file(logfile)
 
@@ -187,38 +192,79 @@ class ConfigParserWrapper(object):
 		return value
 
 
-def test(cfg_path="test.cfg", log_path="log.txt"):
-	assert cfg_path is None or (isinstance(cfg_path, basestring) and os.path.isfile(cfg_path))
-	print "cfg 1"
-	cfg1 = ConfigParserWrapper(cfg_path, logfile=log_path, verbose=True)
-	testing(cfg1)
+class TestStringMethods(unittest.TestCase):
+	test_config = 'unittest_example.cfg'
+	log_file_path = 'unittest_log.txt'
 
-	print "\ncfg 2"
-	with open(cfg_path) as file_handle:
-		cfg2 = ConfigParserWrapper(file_handle, logfile=log_path, verbose=True)
-	testing(cfg2)
+	def test_valid_input(self):
+		with open(TestStringMethods.log_file_path, 'a') as file_handle_log:
+			cfg = ConfigParserWrapper(TestStringMethods.test_config, logfile=file_handle_log, verbose=True)
+			# with open(TestStringMethods.test_config) as file_handle:
+			# 	cfg2 = ConfigParserWrapper(file_handle, logfile=TestStringMethods.log_file_path, verbose=True)
+
+			self.assertIsInstance(cfg, ConfigParserWrapper)
+			list_of_options = {
+				"values": ["string", "integer", "float", "empty", "bool"],
+				"path": ["local", "home", "absolute"]
+				}
+			self.assertIsNone(cfg.validate_sections(list_of_options.keys()))
+
+			test_array = [
+				# [section, option, arguments, assertions, expected_result]
+				["values", "string", {}, self.assertIsInstance, basestring],
+				["values", "integer", {"is_digit": True}, self.assertIsInstance, int],
+				["values", "float", {"is_digit": True}, self.assertIsInstance, float],
+				["values", "empty", {}, self.assertIsNone, None],
+				["values", "bool", {"is_boolean": True}, self.assertIsInstance, bool],
+				["path", "local", {"is_path": True}, self.assertIsInstance, basestring],
+				["path", "home", {"is_path": True}, self.assertIsInstance, basestring],
+				["path", "absolute", {"is_path": True}, self.assertIsInstance, basestring],
+			]
+
+			for test in test_array:
+				section, options, kargs, assertion, expected_result = test
+				assertion(cfg.get_value(section, options, **kargs), expected_result)
+
+	def test_invalid_input(self):
+		with open(TestStringMethods.test_config) as file_handle_cfg, open(TestStringMethods.log_file_path, 'a') as file_handle_log:
+			cfg = ConfigParserWrapper(file_handle_cfg, logfile=file_handle_log, verbose=False)
+
+			self.assertIsInstance(cfg, ConfigParserWrapper)
+			list_of_options = {
+				"values": ["string", "integer", "float", "empty", "bool"],
+				"path": ["local", "home", "absolute"]
+				}
+			self.assertIsNone(cfg.validate_sections(list_of_options.keys()))
+
+			test_array = [
+				# [section, option, arguments, assertions, expected_result]
+				["values", "string", {"is_digit": True}, self.assertIsNone, None],
+				["values", "string", {"is_boolean": True}, self.assertIsNone, None],
+				["values", "string", {"is_digit": True}, self.assertIsNone, None],
+
+				["values", "integer", {"is_boolean": True}, self.assertIsNone, None],
+				["values", "float", {"is_boolean": True}, self.assertIsNone, None],
+
+				["values", "empty", {}, self.assertIsNone, None],
+				["values", "empty", {"is_digit": True}, self.assertIsNone, None],
+				["values", "empty", {"is_boolean": True}, self.assertIsNone, None],
+				["values", "empty", {"is_path": True}, self.assertIsNone, None],
+
+				["values", "bool", {"is_digit": True}, self.assertIsNone, None],
+
+				["path", "local", {"is_digit": True}, self.assertIsNone, None],
+				["path", "local", {"is_boolean": True}, self.assertIsNone, None],
+				["path", "home", {"is_digit": True}, self.assertIsNone, None],
+				["path", "home", {"is_boolean": True}, self.assertIsNone, None],
+				["path", "absolute", {"is_digit": True}, self.assertIsNone, None],
+				["path", "absolute", {"is_boolean": True}, self.assertIsNone, None],
+			]
+
+			for test in test_array:
+				section, options, kargs, assertion, expected_result = test
+				assertion(cfg.get_value(section, options, **kargs), expected_result)
 
 
-def testing(cfg):
-	assert isinstance(cfg, ConfigParserWrapper)
-	list_of_sections = ["s0", "s1", "s2"]
-	list_of_options = ["v0", "v1", "v2"]
-	invalid_sections = cfg.validate_sections(list_of_sections)
-	if invalid_sections:
-		cfg.log_invalid_sections(invalid_sections)
-	print cfg.get_value("s2", "v1")
-	for section in list_of_sections[:2]:
-		for options in list_of_options:
-			print "string:", cfg.get_value(section, options)
-			print "digit:", cfg.get_value(section, options, is_digit=True)
-			print "bool:", cfg.get_value(section, options, is_boolean=True)
-			print "path:", cfg.get_value(section, options, is_path=True)
-
-	for options in list_of_options:
-		print "path:", cfg.get_value("p", options, is_path=True)
-
-if __name__ == "__main__":
-	if len(sys.argv) == 2:
-		test(sys.argv[1])
-	else:
-		test()
+if __name__ == '__main__':
+	suite = unittest.TestLoader().loadTestsFromTestCase(TestStringMethods)
+	unittest.TextTestRunner(verbosity=2, buffer=True).run(suite)
