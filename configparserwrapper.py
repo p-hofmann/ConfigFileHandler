@@ -3,7 +3,6 @@ __verson__ = '0.0.5'
 
 import os
 import io
-import unittest
 from ConfigParser import SafeConfigParser
 from loggingwrapper import LoggingWrapper
 
@@ -55,6 +54,16 @@ class ConfigParserWrapper(object):
 		else:
 			self._logger.error("Invalid config file argument '{}'".format(config_file))
 			raise Exception("Unknown argument")
+
+	def __exit__(self, type, value, traceback):
+		self.close()
+
+	def __enter__(self):
+		return self
+
+	def close(self):
+		self._logger.close()
+		self._logger = None
 
 	def validate_sections(self, list_sections):
 		"""
