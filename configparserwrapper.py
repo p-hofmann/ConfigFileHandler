@@ -3,6 +3,7 @@ __verson__ = '0.0.5'
 
 import os
 import io
+import StringIO
 from ConfigParser import SafeConfigParser
 from loggingwrapper import LoggingWrapper
 
@@ -20,16 +21,17 @@ class ConfigParserWrapper(object):
 			@attention: config_file argument may be file path or stream.
 
 			@param config_file: file handler or file path to a config file
-			@type config_file: file or FileIO or basestring
+			@type config_file: file | FileIO | StringIO
 			@param logfile: file handler or file path to a log file
-			@type logfile: file or FileIO or None
+			@type logfile: file | FileIO | StringIO | None
 			@param verbose: No stdout or stderr messages. Warnings and errors will be only logged to a file, if one is given
 			@type verbose: bool
 
 			@return: None
+			@rtype: None
 		"""
-		assert isinstance(config_file, (file, io.FileIO, basestring))
-		assert logfile is None or isinstance(logfile, (file, io.FileIO, basestring))
+		assert isinstance(config_file, basestring) or self._is_stream(config_file)
+		assert logfile is None or isinstance(logfile, basestring) or self._is_stream(logfile)
 
 		if verbose:
 			self._logger = LoggingWrapper("ConfigParserWrapper")
@@ -61,6 +63,10 @@ class ConfigParserWrapper(object):
 	def __enter__(self):
 		return self
 
+	@staticmethod
+	def _is_stream(stream):
+		return isinstance(stream, (file, io.FileIO, StringIO.StringIO)) or stream.__class__ is StringIO.StringIO
+
 	def close(self):
 		self._logger.close()
 		self._logger = None
@@ -73,6 +79,7 @@ class ConfigParserWrapper(object):
 			@type list_sections: list of basestring
 
 			@return: None if all valid, otherwise list of invalid sections
+			@rtype: None | list[basestring]
 		"""
 		assert isinstance(list_sections, list)
 		invalid_sections = []
@@ -88,9 +95,10 @@ class ConfigParserWrapper(object):
 			print out a list of invalid section names to log.
 
 			@param list_sections: list of section names
-			@type list_sections: list of basestring
+			@type list_sections: list[basestring]
 
-			@return: None if all valid, otherwise list of invalid sections
+			@return: None
+			@rtype: None
 		"""
 		assert isinstance(list_sections, list)
 		for section in list_sections:
@@ -117,6 +125,7 @@ class ConfigParserWrapper(object):
 
 
 			@return: None if not available or ''. Else: depends on given arguments
+			@rtype: None | basestring | int | float
 		"""
 		assert isinstance(section, basestring)
 		assert isinstance(option, basestring)
@@ -157,6 +166,7 @@ class ConfigParserWrapper(object):
 			@type value: basestring
 
 			@return: None if invalid, otherwise int or float
+			@rtype: None | int | float
 		"""
 		assert isinstance(value, basestring)
 		try:
@@ -175,6 +185,7 @@ class ConfigParserWrapper(object):
 			@type value: basestring
 
 			@return: None if invalid, otherwise True or False
+			@rtype: None | bool
 		"""
 		assert isinstance(value, basestring)
 
@@ -192,6 +203,7 @@ class ConfigParserWrapper(object):
 			@type value: basestring
 
 			@return: absolute normpath
+			@rtype: basestring
 		"""
 		assert isinstance(value, basestring)
 		value = os.path.expanduser(value)
