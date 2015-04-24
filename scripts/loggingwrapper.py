@@ -1,12 +1,21 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.5'
+__version__ = '0.0.7'
 
 import sys
 import io
+import StringIO
 import logging
 
 
 class LoggingWrapper(object):
+	CRITICAL = logging.CRITICAL
+	FATAL = logging.CRITICAL
+	ERROR = logging.ERROR
+	WARNING = logging.WARNING
+	WARN = logging.WARN
+	INFO = logging.INFO
+	DEBUG = logging.DEBUG
+	NOTSET = logging.NOTSET
 
 	_levelNames = logging._levelNames
 	_map_logfile_handler = dict()
@@ -26,15 +35,16 @@ class LoggingWrapper(object):
 			@param date_format: "%Y-%m-%d %H:%M:%S"
 			@type date_format: basestring
 			@param stream: To have no output at all, use "stream=None", stderr by default
-			@type stream: file or FileIO or None
+			@type stream: file | FileIO | StringIO | None
 
 			@return: None
+			@rtype: None
 		"""
 		assert isinstance(label, basestring)
 		assert isinstance(verbose, bool)
 		assert message_format is None or isinstance(message_format, basestring)
 		assert message_format is None or isinstance(date_format, basestring)
-		assert stream is None or isinstance(stream, (file, io.FileIO))
+		assert stream is None or self._is_stream(stream)
 
 		if message_format is None:
 			message_format = "%(asctime)s %(levelname)s: [%(name)s] %(message)s"
@@ -61,6 +71,13 @@ class LoggingWrapper(object):
 	def __enter__(self):
 		return self
 
+	@staticmethod
+	def _is_stream(stream):
+		return isinstance(stream, (file, io.FileIO, StringIO.StringIO)) or stream.__class__ is StringIO.StringIO
+
+	def get_label(self):
+		return self._label
+
 	def close(self):
 		"""
 			Close all logfile handler, unless given as stream.
@@ -70,16 +87,17 @@ class LoggingWrapper(object):
 			If given as stream, logfiles will be kept open!
 
 			@return: None
+			@rtype: None
 		"""
 		list_of_handlers = list(self._logger.handlers)
 		for item in list_of_handlers:
 			self._logger.removeHandler(item)
 		if self._label not in LoggingWrapper._map_logfile_handler:
 			return
-		if LoggingWrapper._map_logfile_handler[self._label] is None:
-			return
+
 		logfile_handler = LoggingWrapper._map_logfile_handler.pop(self._label)
-		logfile_handler.close()
+		if logfile_handler is not None:
+			logfile_handler.close()
 
 	def info(self, message):
 		"""
@@ -89,6 +107,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.info(message)
 
@@ -100,6 +119,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.error(message)
 
@@ -111,6 +131,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.debug(message)
 
@@ -122,6 +143,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.critical(message)
 
@@ -135,6 +157,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.exception(message)
 
@@ -146,6 +169,7 @@ class LoggingWrapper(object):
 			@type message: basestring
 
 			@return: None
+			@rtype: None
 		"""
 		self._logger.warning(message)
 
@@ -165,22 +189,28 @@ class LoggingWrapper(object):
 			@type level: int or long
 
 			@return: None
+			@rtype: None
 		"""
 		assert level in self._levelNames
-		self._logger.setLevel(level)
+
+		list_of_handlers = self._logger.handlers
+		for handler in list_of_handlers:
+			handler.setLevel(level)
 
 	def add_log_stream(self, stream=sys.stderr, level=logging.INFO):
 		"""
 			Add a stream where messages are outputted to.
 
 			@param stream: stderr/stdout or a file stream
-			@type stream: file or FileIO
+			@type stream: file | FileIO | StringIO
 			@param level: minimum level of messages to be logged
-			@type level: int or long
+			@type level: int | long
 
 			@return: None
+			@rtype: None
 		"""
-		assert isinstance(stream, (file, io.FileIO))
+		assert self._is_stream(stream)
+		# assert isinstance(stream, (file, io.FileIO))
 		assert level in self._levelNames
 
 		err_handler = logging.StreamHandler(stream)
@@ -195,15 +225,16 @@ class LoggingWrapper(object):
 			@attention: file stream will only be closed if a file path is given!
 
 			@param log_file: file stream or file path of logfile
-			@type log_file: file or FileIO or basestring
+			@type log_file: file | FileIO | StringIO | basestring
 			@param mode: opening mode for logfile, if a file path is given
 			@type mode: basestring
 			@param level: minimum level of messages to be logged
 			@type level: int or long
 
 			@return: None
+			@rtype: None
 		"""
-		assert isinstance(log_file, (basestring, file, io.FileIO))
+		assert isinstance(log_file, basestring) or self._is_stream(log_file)
 		assert level in self._levelNames
 
 		if LoggingWrapper._map_logfile_handler[self._label] is not None:
@@ -224,46 +255,3 @@ class LoggingWrapper(object):
 		except Exception:
 			sys.stderr.write("[LoggingWrapper] Could not open '{}' for logging\n".format(log_file))
 			return
-
-
-def test(log_file_path=None):
-	assert log_file_path is None or isinstance(log_file_path, basestring)
-	log1 = LoggingWrapper("l1")
-	if log_file_path:
-		log1.set_log_file(log_file_path)
-	log1.info("Test1")
-	log2 = LoggingWrapper("l2")
-	if log_file_path:
-		log2.set_log_file(log_file_path, 'a')
-	log1.info("Test2")
-	log2.info("Test1")
-	log2.info("Test2")
-	log2x = LoggingWrapper("l2")
-	log2x.info("Test1 X")
-	log2x.set_level(logging.CRITICAL)
-	log2x.critical("Test2 X")
-	log1.close()
-	log2.close()
-	log2x.close()
-
-	if log_file_path:
-		log3 = LoggingWrapper("l3", stream=None)
-		with open(log_file_path, 'a') as log_file_handle:
-			log3.set_log_file(log_file_handle)
-			log3.info("Test1")
-			list_of_methods = [log3.info, log3.debug, log3.warning, log3.error, log3.info, log3.critical]
-			count = 2
-			for methods in list_of_methods:
-				methods("Test{}".format(count))
-				count += 1
-			try:
-				raise Exception("Test{}".format(count))
-			except Exception:
-				log3.exception("Test{}".format(count))
-		log3.close()
-
-if __name__ == "__main__":
-	if len(sys.argv) == 2:
-		test(sys.argv[1])
-	else:
-		test()

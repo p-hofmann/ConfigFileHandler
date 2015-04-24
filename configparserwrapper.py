@@ -5,7 +5,7 @@ import os
 import io
 import StringIO
 from ConfigParser import SafeConfigParser
-from loggingwrapper import LoggingWrapper
+from scripts.loggingwrapper import LoggingWrapper
 
 
 class ConfigParserWrapper(object):
