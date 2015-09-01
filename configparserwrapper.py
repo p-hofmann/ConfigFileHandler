@@ -1,5 +1,5 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.6'
+__verson__ = '0.0.7'
 
 import os
 import StringIO
@@ -84,7 +84,7 @@ class ConfigParserWrapper(DefaultLogging):
 		for section in list_sections:
 			self._logger.warning("Invalid section '{}'".format(section))
 
-	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, obligatory=True):
+	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, silent=False):
 		"""
 			get a value of an option in a specific section of the config file.
 
@@ -100,8 +100,8 @@ class ConfigParserWrapper(DefaultLogging):
 			@type is_boolean: bool
 			@param is_path: value is a path and will be returned as absolute path
 			@type is_path: bool
-			@param obligatory: Set False if a section or option that does not exist is no error
-			@type obligatory: bool
+			@param silent: Error is given if error not available unless True
+			@type silent: bool
 
 
 			@return: None if not available or ''. Else: depends on given arguments
@@ -111,21 +111,21 @@ class ConfigParserWrapper(DefaultLogging):
 		assert isinstance(option, basestring)
 		assert isinstance(is_digit, bool)
 		assert isinstance(is_boolean, bool)
-		assert isinstance(obligatory, bool)
+		assert isinstance(silent, bool)
 		assert isinstance(is_path, bool)
 		if not self._config.has_section(section):
-			if obligatory:
+			if not silent:
 				self._logger.error("Invalid section '{}'".format(section))
 			return None
 		if not self._config.has_option(section, option):
-			if obligatory:
-				self._logger.error("Invalid option in '{}': {}".format(section, option))
+			if not silent:
+				self._logger.error("Invalid option in '{}': '{}'".format(section, option))
 			return None
 
 		value = self._config.get(section, option)
 		if value == '':
-			if obligatory:
-				self._logger.debug("Invalid value in '{}': {}".format(section, option))
+			if not silent:
+				self._logger.warning("Empty value in '{}': '{}'".format(section, option))
 			return None
 
 		if is_digit:
