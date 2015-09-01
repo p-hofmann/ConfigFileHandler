@@ -105,7 +105,7 @@ class ConfigParserWrapper(DefaultLogging):
 
 
 			@return: None if not available or ''. Else: depends on given arguments
-			@rtype: None | basestring | int | float
+			@rtype: None | basestring | int | float | bool
 		"""
 		assert isinstance(section, basestring)
 		assert isinstance(option, basestring)
