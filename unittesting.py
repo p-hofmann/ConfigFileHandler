@@ -14,7 +14,6 @@ class DefaultConfigParserWrapper(unittest.TestCase):
 		self.cfg = ConfigParserWrapper(DefaultConfigParserWrapper.test_config, logfile=self.file_stream, verbose=False)
 
 	def tearDown(self):
-		self.cfg.close()
 		self.cfg = None
 		self.file_stream.close()
 		self.file_stream = None

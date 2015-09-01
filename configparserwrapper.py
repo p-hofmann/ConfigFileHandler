@@ -1,18 +1,19 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.5'
+__verson__ = '0.0.6'
 
 import os
-import io
 import StringIO
 from ConfigParser import SafeConfigParser
-from scripts.loggingwrapper import LoggingWrapper
+from scripts.loggingwrapper import DefaultLogging
 
 
-class ConfigParserWrapper(object):
+class ConfigParserWrapper(DefaultLogging):
 	_boolean_states = {
 		'yes': True, 'true': True, 'on': True,
 		'no': False, 'false': False, 'off': False,
 		'y': True, 't': True, 'n': False, 'f': False}
+
+	_label = "ConfigParserWrapper"
 
 	def __init__(self, config_file, logfile=None, verbose=True):
 		"""
@@ -30,17 +31,10 @@ class ConfigParserWrapper(object):
 			@return: None
 			@rtype: None
 		"""
-		assert isinstance(config_file, basestring) or self._is_stream(config_file)
-		assert logfile is None or isinstance(logfile, basestring) or self._is_stream(logfile)
+		assert isinstance(config_file, basestring) or self.is_stream(config_file)
+		assert logfile is None or isinstance(logfile, basestring) or self.is_stream(logfile)
 
-		if verbose:
-			self._logger = LoggingWrapper("ConfigParserWrapper")
-		else:
-			self._logger = LoggingWrapper("ConfigParserWrapper", stream=None)
-
-		if logfile:
-			self._logger.set_log_file(logfile)
-
+		super(ConfigParserWrapper, self).__init__(logfile=logfile, verbose=verbose)
 		self._config = SafeConfigParser()
 
 		if isinstance(config_file, basestring) and not os.path.isfile(config_file):
@@ -50,26 +44,12 @@ class ConfigParserWrapper(object):
 		if isinstance(config_file, basestring):
 			self._config.read(config_file)
 			self._config_file_path = config_file
-		elif isinstance(config_file, file):
+		elif self.is_stream(config_file):
 			self._config.readfp(config_file)
 			self._config_file_path = config_file.name
 		else:
 			self._logger.error("Invalid config file argument '{}'".format(config_file))
 			raise Exception("Unknown argument")
-
-	def __exit__(self, type, value, traceback):
-		self.close()
-
-	def __enter__(self):
-		return self
-
-	@staticmethod
-	def _is_stream(stream):
-		return isinstance(stream, (file, io.FileIO, StringIO.StringIO)) or stream.__class__ is StringIO.StringIO
-
-	def close(self):
-		self._logger.close()
-		self._logger = None
 
 	def validate_sections(self, list_sections):
 		"""
