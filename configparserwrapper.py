@@ -1,5 +1,5 @@
 __author__ = 'hofmann'
-__verson__ = '0.0.7'
+__verson__ = '0.0.8'
 
 import os
 import StringIO
@@ -115,11 +115,11 @@ class ConfigParserWrapper(DefaultLogging):
 		assert isinstance(is_path, bool)
 		if not self._config.has_section(section):
 			if not silent:
-				self._logger.error("Invalid section '{}'".format(section))
+				self._logger.error("Missing section '{}'".format(section))
 			return None
 		if not self._config.has_option(section, option):
 			if not silent:
-				self._logger.error("Invalid option in '{}': '{}'".format(section, option))
+				self._logger.error("Missing option '{}' in section '{}'".format(option, section))
 			return None
 
 		value = self._config.get(section, option)
