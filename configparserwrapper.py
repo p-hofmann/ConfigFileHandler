@@ -1,22 +1,27 @@
 __author__ = 'hofmann'
+<<<<<<< HEAD
 __verson__ = '0.0.6'
+=======
+__verson__ = '0.0.8'
+>>>>>>> e7502981638e709e992570f779be1bf43e871673
 
 import os
-import io
 import StringIO
 from ConfigParser import SafeConfigParser
-from scripts.loggingwrapper import LoggingWrapper
+from scripts.loggingwrapper import DefaultLogging
 
 # TODO: handle parsing error
 # ConfigParser.ParsingError: File contains parsing errors: Pipeline/unittest_input/pipeline_local.config
 # 	[line 91]: 'Maximum is exceeded if no other genomes available.\n'
 
 
-class ConfigParserWrapper(object):
+class ConfigParserWrapper(DefaultLogging):
 	_boolean_states = {
 		'yes': True, 'true': True, 'on': True,
 		'no': False, 'false': False, 'off': False,
 		'y': True, 't': True, 'n': False, 'f': False}
+
+	_label = "ConfigParserWrapper"
 
 	def __init__(self, config_file, logfile=None, verbose=True):
 		"""
@@ -34,17 +39,10 @@ class ConfigParserWrapper(object):
 			@return: None
 			@rtype: None
 		"""
-		assert isinstance(config_file, basestring) or self._is_stream(config_file)
-		assert logfile is None or isinstance(logfile, basestring) or self._is_stream(logfile)
+		assert isinstance(config_file, basestring) or self.is_stream(config_file)
+		assert logfile is None or isinstance(logfile, basestring) or self.is_stream(logfile)
 
-		if verbose:
-			self._logger = LoggingWrapper("ConfigParserWrapper")
-		else:
-			self._logger = LoggingWrapper("ConfigParserWrapper", stream=None)
-
-		if logfile:
-			self._logger.set_log_file(logfile)
-
+		super(ConfigParserWrapper, self).__init__(logfile=logfile, verbose=verbose)
 		self._config = SafeConfigParser()
 
 		if isinstance(config_file, basestring) and not os.path.isfile(config_file):
@@ -54,26 +52,12 @@ class ConfigParserWrapper(object):
 		if isinstance(config_file, basestring):
 			self._config.read(config_file)
 			self._config_file_path = config_file
-		elif isinstance(config_file, file):
+		elif self.is_stream(config_file):
 			self._config.readfp(config_file)
 			self._config_file_path = config_file.name
 		else:
 			self._logger.error("Invalid config file argument '{}'".format(config_file))
 			raise Exception("Unknown argument")
-
-	def __exit__(self, type, value, traceback):
-		self.close()
-
-	def __enter__(self):
-		return self
-
-	@staticmethod
-	def _is_stream(stream):
-		return isinstance(stream, (file, io.FileIO, StringIO.StringIO)) or stream.__class__ is StringIO.StringIO
-
-	def close(self):
-		self._logger.close()
-		self._logger = None
 
 	def validate_sections(self, list_sections):
 		"""
@@ -108,7 +92,7 @@ class ConfigParserWrapper(object):
 		for section in list_sections:
 			self._logger.warning("Invalid section '{}'".format(section))
 
-	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, obligatory=True):
+	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, silent=False):
 		"""
 			get a value of an option in a specific section of the config file.
 
@@ -124,32 +108,32 @@ class ConfigParserWrapper(object):
 			@type is_boolean: bool
 			@param is_path: value is a path and will be returned as absolute path
 			@type is_path: bool
-			@param obligatory: Set False if a section or option that does not exist is no error
-			@type obligatory: bool
+			@param silent: Error is given if error not available unless True
+			@type silent: bool
 
 
 			@return: None if not available or ''. Else: depends on given arguments
-			@rtype: None | basestring | int | float
+			@rtype: None | basestring | int | float | bool
 		"""
 		assert isinstance(section, basestring)
 		assert isinstance(option, basestring)
 		assert isinstance(is_digit, bool)
 		assert isinstance(is_boolean, bool)
-		assert isinstance(obligatory, bool)
+		assert isinstance(silent, bool)
 		assert isinstance(is_path, bool)
 		if not self._config.has_section(section):
-			if obligatory:
-				self._logger.error("Invalid section '{}'".format(section))
+			if not silent:
+				self._logger.error("Missing section '{}'".format(section))
 			return None
 		if not self._config.has_option(section, option):
-			if obligatory:
-				self._logger.error("Invalid option in '{}': {}".format(section, option))
+			if not silent:
+				self._logger.error("Missing option '{}' in section '{}'".format(option, section))
 			return None
 
 		value = self._config.get(section, option)
 		if value == '':
-			if obligatory:
-				self._logger.debug("Invalid value in '{}': {}".format(section, option))
+			if not silent:
+				self._logger.warning("Empty value in '{}': '{}'".format(section, option))
 			return None
 
 		if is_digit:
