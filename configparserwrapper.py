@@ -1,9 +1,5 @@
-__author__ = 'hofmann'
-<<<<<<< HEAD
-__verson__ = '0.0.6'
-=======
+__author__ = 'Peter Hofmann'
 __verson__ = '0.0.8'
->>>>>>> e7502981638e709e992570f779be1bf43e871673
 
 import os
 import StringIO
