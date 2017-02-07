@@ -2,7 +2,7 @@ __author__ = 'Peter Hofmann'
 __version__ = '0.0.9'
 
 import os
-import StringIO
+from io import StringIO
 from ConfigParser import SafeConfigParser
 from scripts.loggingwrapper import DefaultLogging
 
@@ -84,16 +84,16 @@ class ConfigParserWrapper(DefaultLogging):
 		for section in list_sections:
 			self._logger.warning("Invalid section '{}'".format(section))
 
-	def get_value(self, section, option, is_digit=False, is_boolean=False, is_path=False, silent=False):
+	def get_value(self, option, section=None, is_digit=False, is_boolean=False, is_path=False, silent=False):
 		"""
 			get a value of an option in a specific section of the config file.
 
 			@attention: Set obligatory to False if a section or option that does not exist is no error.
 
-			@param section: name of section
-			@type section: str
 			@param option: name of option in a section
 			@type option: str
+			@param section: name of section
+			@type section: str
 			@param is_digit: value is a number and will be returned as such
 			@type is_digit: bool
 			@param is_boolean: value is bool and will be returned as True or False
@@ -107,12 +107,14 @@ class ConfigParserWrapper(DefaultLogging):
 			@return: None if not available or ''. Else: depends on given arguments
 			@rtype: None | str | int | float | bool
 		"""
-		assert isinstance(section, str)
+		assert section is None or isinstance(section, str)
 		assert isinstance(option, str)
 		assert isinstance(is_digit, bool)
 		assert isinstance(is_boolean, bool)
 		assert isinstance(silent, bool)
 		assert isinstance(is_path, bool)
+		if section is None:
+			section = self._get_section_of_option(option)
 		if not self._config.has_section(section):
 			if not silent:
 				self._logger.error("Missing section '{}'".format(section))
@@ -137,6 +139,22 @@ class ConfigParserWrapper(DefaultLogging):
 		if is_path:
 			return self._get_full_path(value)
 		return value
+
+	def _get_section_of_option(self, option):
+		"""
+			get the section of a unique option
+
+			@param option: name of option in a section
+			@type option: str
+
+			@return: Section name. None if not available
+			@rtype: None | str
+		"""
+		assert isinstance(option, str)
+		for section in self._config.sections():
+			if self._config.has_option(section, option):
+				return section
+		return None
 
 	def _string_to_digit(self, value):
 		"""

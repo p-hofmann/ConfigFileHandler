@@ -31,19 +31,20 @@ class TestConfigParserMethods(DefaultConfigParserWrapper):
 
 		test_array = [
 			# [section, option, arguments, assertions, expected_result]
-			["values", "string", {}, self.assertIsInstance, basestring],
+			["values", "string", {}, self.assertIsInstance, str],
 			["values", "integer", {"is_digit": True}, self.assertIsInstance, int],
 			["values", "float", {"is_digit": True}, self.assertIsInstance, float],
 			["values", "empty", {}, self.assertIsNone, None],
 			["values", "bool", {"is_boolean": True}, self.assertIsInstance, bool],
-			["path", "local", {"is_path": True}, self.assertIsInstance, basestring],
-			["path", "home", {"is_path": True}, self.assertIsInstance, basestring],
-			["path", "absolute", {"is_path": True}, self.assertIsInstance, basestring],
+			["path", "local", {"is_path": True}, self.assertIsInstance, str],
+			["path", "home", {"is_path": True}, self.assertIsInstance, str],
+			[None, "home", {"is_path": True}, self.assertIsInstance, str],
+			["path", "absolute", {"is_path": True}, self.assertIsInstance, str],
 		]
 
 		for test in test_array:
 			section, options, kargs, assertion, expected_result = test
-			assertion(self.cfg.get_value(section, options, **kargs), expected_result)
+			assertion(self.cfg.get_value(options, section, **kargs), expected_result)
 
 	def test_invalid_input(self):
 		list_of_options = {
