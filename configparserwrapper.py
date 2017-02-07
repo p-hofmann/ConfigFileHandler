@@ -1,5 +1,5 @@
 __author__ = 'Peter Hofmann'
-__version__ = '0.0.9'
+__version__ = '0.1.0'
 
 import os
 from io import StringIO
@@ -155,6 +155,23 @@ class ConfigParserWrapper(DefaultLogging):
 			if self._config.has_option(section, option):
 				return section
 		return None
+
+	def search_sections_of(self, option):
+		"""
+			get the section of a unique option
+
+			@param option: name of option in a section
+			@type option: str
+
+			@return: Section name. None if not available
+			@rtype: set[str]
+		"""
+		assert isinstance(option, str)
+		result = set()
+		for section in self._config.sections():
+			if self._config.has_option(section, option):
+				return result.add(section)
+		return result
 
 	def _string_to_digit(self, value):
 		"""
