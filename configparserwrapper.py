@@ -1,5 +1,5 @@
 __author__ = 'Peter Hofmann'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 import os
 from io import StringIO
@@ -8,19 +8,21 @@ from scripts.loggingwrapper import DefaultLogging
 
 
 class ConfigParserWrapper(DefaultLogging):
+    """
+    @type _config: SafeConfigParser
+    """
+
     _boolean_states = {
         'yes': True, 'true': True, 'on': True,
         'no': False, 'false': False, 'off': False,
         'y': True, 't': True, 'n': False, 'f': False}
 
-    def __init__(self, config_file, logfile=None, verbose=True):
+    def __init__(self, logfile=None, verbose=True):
         """
             Wrapper for the SafeConfigParser class for easy use.
 
             @attention: config_file argument may be file path or stream.
 
-            @param config_file: file handler or file path to a config file
-            @type config_file: file | FileIO | StringIO
             @param logfile: file handler or file path to a log file
             @type logfile: file | FileIO | StringIO | None
             @param verbose: No stdout or stderr messages. Warnings and errors will be only logged to a file, if one is given
@@ -29,13 +31,25 @@ class ConfigParserWrapper(DefaultLogging):
             @return: None
             @rtype: None
         """
-        assert isinstance(config_file, str) or self.is_stream(config_file)
         assert logfile is None or isinstance(logfile, str) or self.is_stream(logfile)
 
         super(ConfigParserWrapper, self).__init__(
             label="ConfigParserWrapper", logfile=logfile, verbose=verbose)
         self._config = SafeConfigParser()
+        self._config_file_path = None
 
+    def read(self, config_file):
+        """
+            Read a configuration file in ini format
+
+            @attention: config_file argument may be file path or stream.
+
+            @param config_file: file handler or file path to a config file
+            @type config_file: file | FileIO | StringIO
+
+            @rtype: None
+        """
+        assert isinstance(config_file, str) or self.is_stream(config_file)
         if isinstance(config_file, str) and not os.path.isfile(config_file):
             self._logger.error("Config file does not exist: '{}'".format(config_file))
             raise Exception("File does not exist")
@@ -49,6 +63,32 @@ class ConfigParserWrapper(DefaultLogging):
         else:
             self._logger.error("Invalid config file argument '{}'".format(config_file))
             raise Exception("Unknown argument")
+
+    def write(self, file_path):
+        """
+        Write config file
+
+        @param file_path: Output file path
+        @type file_path: str
+
+        @rtype: None
+        """
+        with open(file_path, "w") as write_handler:
+            self._config.write(write_handler)
+
+    def set_value(self, option, value, section=None):
+        """
+
+        @param section:
+        @type section: str
+        @param value:
+        @type value: any
+
+        @rtype: None
+        """
+        if not self._config.has_section(section):
+            self._config.add_section(section)
+        self._config.set(section, option, value)
 
     def validate_sections(self, list_sections):
         """
