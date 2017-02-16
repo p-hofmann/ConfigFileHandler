@@ -2,8 +2,13 @@ __author__ = 'Peter Hofmann'
 __version__ = '0.1.1'
 
 import os
+import sys
+from collections import Iterable
 from io import StringIO
-from ConfigParser import SafeConfigParser
+if sys.version_info < (3,):
+    from ConfigParser import SafeConfigParser as ConfigParser
+else:
+    from configparser import ConfigParser
 from scripts.loggingwrapper import DefaultLogging
 
 
@@ -35,7 +40,7 @@ class ConfigParserWrapper(DefaultLogging):
 
         super(ConfigParserWrapper, self).__init__(
             label="ConfigParserWrapper", logfile=logfile, verbose=verbose)
-        self._config = SafeConfigParser()
+        self._config = ConfigParser()
         self._config_file_path = None
 
     def read(self, config_file):
@@ -58,7 +63,10 @@ class ConfigParserWrapper(DefaultLogging):
             self._config.read(config_file)
             self._config_file_path = config_file
         elif self.is_stream(config_file):
-            self._config.readfp(config_file)
+            if sys.version_info < (3,):
+                self._config.readfp(config_file)
+            else:
+                self._config.read_file(config_file)
             self._config_file_path = config_file.name
         else:
             self._logger.error("Invalid config file argument '{}'".format(config_file))
@@ -100,7 +108,7 @@ class ConfigParserWrapper(DefaultLogging):
             @return: None if all valid, otherwise list of invalid sections
             @rtype: None | list[str]
         """
-        assert isinstance(list_sections, list)
+        assert isinstance(list_sections, Iterable), list_sections
         invalid_sections = []
         for section in list_sections:
             if not self._config.has_section(section):
@@ -119,7 +127,7 @@ class ConfigParserWrapper(DefaultLogging):
             @return: None
             @rtype: None
         """
-        assert isinstance(list_sections, list)
+        assert isinstance(list_sections, Iterable)
         for section in list_sections:
             self._logger.warning("Invalid section '{}'".format(section))
 
