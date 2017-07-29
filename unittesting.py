@@ -10,14 +10,11 @@ class DefaultConfigParserWrapper(unittest.TestCase):
     log_file_path = 'unittest_log.txt'
 
     def setUp(self):
-        self.file_stream = open(DefaultConfigParserWrapper.log_file_path, 'a')
-        self.cfg = ConfigParserWrapper(logfile=self.file_stream, verbose=False)
+        self.cfg = ConfigParserWrapper(logfile=DefaultConfigParserWrapper.log_file_path, verbose=False)
         self.cfg.read(DefaultConfigParserWrapper.test_config)
 
     def tearDown(self):
         self.cfg = None
-        self.file_stream.close()
-        self.file_stream = None
         if os.path.exists(DefaultConfigParserWrapper.log_file_path):
             os.remove(DefaultConfigParserWrapper.log_file_path)
 
